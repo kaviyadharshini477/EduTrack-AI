@@ -1,0 +1,503 @@
+{% extends "base.html" %}
+
+{% block title %}AI Academic Mentor | EduTrack AI{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chat-container {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 140px);
+        min-height: 500px;
+        background-color: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        overflow: hidden;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    }
+
+    .chat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--border-color);
+        background-color: #FFF;
+    }
+
+    .chat-mentor-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .chat-mentor-avatar {
+        width: 42px;
+        height: 42px;
+        background-color: #EFF6FF;
+        color: var(--primary);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        border: 1px solid #DBEAFE;
+        position: relative;
+    }
+
+    .chat-mentor-status-dot {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 12px;
+        height: 12px;
+        background-color: #10B981;
+        border: 2px solid #FFF;
+        border-radius: 50%;
+    }
+
+    .chat-messages {
+        flex-grow: 1;
+        padding: 24px;
+        overflow-y: auto;
+        background-color: #F9FAFB;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        scroll-behavior: smooth;
+    }
+
+    .message-row {
+        display: flex;
+        width: 100%;
+        animation: messageFadeIn 0.3s ease-out;
+    }
+
+    @keyframes messageFadeIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message-row.user {
+        justify-content: flex-end;
+    }
+
+    .message-row.assistant {
+        justify-content: flex-start;
+    }
+
+    .message-bubble {
+        max-width: 75%;
+        padding: 14px 18px;
+        border-radius: 16px;
+        font-size: 15px;
+        line-height: 1.6;
+        word-wrap: break-word;
+    }
+
+    .message-row.user .message-bubble {
+        background-color: var(--primary);
+        color: #FFFFFF;
+        border-bottom-right-radius: 4px;
+        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.15);
+    }
+
+    .message-row.assistant .message-bubble {
+        background-color: #FFFFFF;
+        color: var(--text-main);
+        border: 1px solid var(--border-color);
+        border-bottom-left-radius: 4px;
+        box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+    }
+
+    /* Markdown styling inside messages */
+    .message-bubble p {
+        margin-bottom: 8px;
+    }
+    .message-bubble p:last-child {
+        margin-bottom: 0;
+    }
+    .message-bubble ul, .message-bubble ol {
+        margin-left: 20px;
+        margin-bottom: 8px;
+    }
+    .message-bubble ul:last-child, .message-bubble ol:last-child {
+        margin-bottom: 0;
+    }
+    .message-bubble li {
+        margin-bottom: 4px;
+    }
+    .message-bubble strong {
+        font-weight: 600;
+    }
+
+    .welcome-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 40px 20px;
+        margin: auto;
+        max-width: 600px;
+    }
+
+    .welcome-avatar {
+        width: 72px;
+        height: 72px;
+        background-color: #EFF6FF;
+        color: var(--primary);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 36px;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+    }
+
+    .suggested-prompts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 16px;
+        width: 100%;
+        margin-top: 32px;
+    }
+
+    .prompt-card {
+        background-color: #FFFFFF;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 16px;
+        text-align: left;
+        cursor: pointer;
+        transition: var(--transition);
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-main);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    }
+
+    .prompt-card:hover {
+        border-color: var(--primary);
+        background-color: #EFF6FF;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.05);
+    }
+
+    .prompt-card i {
+        color: var(--primary);
+        font-size: 16px;
+        opacity: 0.7;
+        transition: var(--transition);
+    }
+
+    .prompt-card:hover i {
+        opacity: 1;
+        transform: translateX(3px);
+    }
+
+    .chat-input-area {
+        padding: 20px 24px;
+        border-top: 1px solid var(--border-color);
+        background-color: #FFFFFF;
+    }
+
+    .chat-form {
+        display: flex;
+        gap: 12px;
+    }
+
+    .chat-input {
+        flex-grow: 1;
+        resize: none;
+        height: 48px;
+        max-height: 120px;
+        padding: 12px 18px;
+        border: 1px solid var(--border-color);
+        border-radius: 24px;
+        outline: none;
+        font-size: 15px;
+        transition: var(--transition);
+        background-color: #F9FAFB;
+    }
+
+    .chat-input:focus {
+        border-color: var(--primary);
+        background-color: #FFFFFF;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+
+    .send-btn {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background-color: var(--primary);
+        color: #FFFFFF;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        transition: var(--transition);
+        flex-shrink: 0;
+    }
+
+    .send-btn:hover:not(:disabled) {
+        background-color: var(--primary-hover);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    .send-btn:disabled {
+        background-color: #9CA3AF;
+        cursor: not-allowed;
+    }
+
+    /* Typing Indicator */
+    .typing-indicator {
+        display: none;
+        align-items: center;
+        gap: 4px;
+        padding: 14px 18px;
+        background-color: #FFFFFF;
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        border-bottom-left-radius: 4px;
+        width: fit-content;
+        box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+    }
+
+    .typing-dot {
+        width: 8px;
+        height: 8px;
+        background-color: #9CA3AF;
+        border-radius: 50%;
+        animation: typingBounce 1.4s infinite ease-in-out both;
+    }
+
+    .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+    .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+    @keyframes typingBounce {
+        0%, 80%, 100% { transform: scale(0); }
+        40% { transform: scale(1.0); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        <h1 style="font-size: 24px; font-weight: 700; color: var(--text-main); margin-bottom: 4px;">AI Academic Mentor</h1>
+        <p style="color: var(--text-muted); font-size: 14px;">Chat with your personal AI academic coach powered by your performance statistics.</p>
+    </div>
+</div>
+
+<div class="chat-container">
+    <div class="chat-header">
+        <div class="chat-mentor-info">
+            <div class="chat-mentor-avatar">
+                <i class="fa-solid fa-robot"></i>
+                <div class="chat-mentor-status-dot"></div>
+            </div>
+            <div>
+                <h3 style="font-size: 15px; font-weight: 600; color: var(--text-main);">Academic Coach</h3>
+                <span style="font-size: 12px; color: #10B981; font-weight: 500;">Online & Ready</span>
+            </div>
+        </div>
+        <button id="clear-chat-btn" class="btn" style="background-color: #FDE8E8; color: #E11D48; padding: 8px 16px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; border-radius: 20px;">
+            <i class="fa-solid fa-trash-can"></i> Clear Chat
+        </button>
+    </div>
+
+    <div class="chat-messages" id="chat-messages">
+        {% if not chat_history %}
+            <div class="welcome-container" id="welcome-container">
+                <div class="welcome-avatar">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <h2 style="font-size: 22px; font-weight: 700; color: var(--text-main); margin-bottom: 12px;">Welcome, {{ current_user.full_name }}!</h2>
+                <p style="color: var(--text-muted); line-height: 1.6; font-size: 15px;">
+                    I am your AI Academic Mentor. I have loaded your prediction logs, goal tracker goals, and study metrics. Ask me anything to get personalized advice, study plans, or career tips!
+                </p>
+                <div class="suggested-prompts-grid">
+                    {% for prompt in suggested_prompts %}
+                        <div class="prompt-card" onclick="sendPrompt('{{ prompt }}')">
+                            <span>{{ prompt }}</span>
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% else %}
+            {% for msg in chat_history %}
+                <div class="message-row {{ msg.sender }}">
+                    <div class="message-bubble markdown-content">
+                        {{ msg.message }}
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Typing Indicator -->
+        <div class="message-row assistant" id="typing-row" style="display: none;">
+            <div class="typing-indicator" id="typing-indicator" style="display: flex;">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="chat-input-area">
+        <form class="chat-form" id="chat-form" onsubmit="sendMessage(event)">
+            <input type="text" id="chat-input" class="chat-input" placeholder="Ask your mentor a question..." autocomplete="off">
+            <button type="submit" id="send-btn" class="send-btn">
+                <i class="fa-solid fa-paper-plane"></i>
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Marked.js for rendering markdown in client-side chat bubbles -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+    // Configure marked to parse line breaks as <br>
+    marked.setOptions({
+        breaks: true,
+        gfm: true
+    });
+
+    const chatMessages = document.getElementById('chat-messages');
+    const chatInput = document.getElementById('chat-input');
+    const chatForm = document.getElementById('chat-form');
+    const sendBtn = document.getElementById('send-btn');
+    const typingRow = document.getElementById('typing-row');
+    const welcomeContainer = document.getElementById('welcome-container');
+    const clearChatBtn = document.getElementById('clear-chat-btn');
+
+    // Parse all existing assistant markdown content on load
+    document.addEventListener("DOMContentLoaded", () => {
+        const markdownBubbles = document.querySelectorAll('.message-row.assistant .markdown-content');
+        markdownBubbles.forEach(bubble => {
+            bubble.innerHTML = marked.parse(bubble.textContent.trim());
+        });
+        scrollToBottom();
+    });
+
+    function scrollToBottom() {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function appendMessage(sender, text) {
+        // Remove welcome container if it exists
+        if (welcomeContainer) {
+            welcomeContainer.style.display = 'none';
+        }
+
+        const row = document.createElement('div');
+        row.className = `message-row ${sender}`;
+        
+        const bubble = document.createElement('div');
+        bubble.className = 'message-bubble markdown-content';
+        
+        if (sender === 'assistant') {
+            bubble.innerHTML = marked.parse(text);
+        } else {
+            // User messages are plain text
+            bubble.textContent = text;
+        }
+        
+        row.appendChild(bubble);
+        
+        // Insert before the typing indicator row
+        chatMessages.insertBefore(row, typingRow);
+        scrollToBottom();
+    }
+
+    function showTypingIndicator() {
+        typingRow.style.display = 'flex';
+        scrollToBottom();
+    }
+
+    function hideTypingIndicator() {
+        typingRow.style.display = 'none';
+    }
+
+    async function sendMessage(e) {
+        if (e) e.preventDefault();
+        
+        const message = chatInput.value.trim();
+        if (!message) return;
+
+        // Clear input & disable UI
+        chatInput.value = '';
+        chatInput.disabled = true;
+        sendBtn.disabled = true;
+
+        // Append user message
+        appendMessage('user', message);
+
+        // Show typing indicator
+        showTypingIndicator();
+
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message: message })
+            });
+
+            const data = await response.json();
+            
+            hideTypingIndicator();
+
+            if (response.ok && data.status === 'success') {
+                appendMessage('assistant', data.reply);
+            } else {
+                appendMessage('assistant', `⚠️ Sorry, I couldn't generate a reply. Error: ${data.error || 'Unknown error'}`);
+            }
+        } catch (error) {
+            hideTypingIndicator();
+            appendMessage('assistant', `⚠️ A network error occurred: ${error.message}. Please check your connection.`);
+        } finally {
+            chatInput.disabled = false;
+            sendBtn.disabled = false;
+            chatInput.focus();
+        }
+    }
+
+    function sendPrompt(text) {
+        chatInput.value = text;
+        sendMessage();
+    }
+
+    clearChatBtn.addEventListener('click', async () => {
+        if (!confirm('Are you sure you want to clear your chat history with the mentor?')) return;
+        
+        try {
+            const response = await fetch('/api/chat/clear', {
+                method: 'POST'
+            });
+            const data = await response.json();
+            if (response.ok && data.status === 'success') {
+                // Reload page to show welcome screen
+                window.location.reload();
+            } else {
+                alert('Error clearing chat history: ' + (data.message || 'Unknown error'));
+            }
+        } catch (error) {
+            alert('A network error occurred: ' + error.message);
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+
+{% block title %}Predict Performance | EduTrack AI{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto;">
+    <div style="margin-bottom: 24px;">
+        <h1 style="font-size: 24px; font-weight: 600; color: var(--text-main); margin-bottom: 8px;">Predict Your Score</h1>
+        <p style="color: var(--text-muted);">Enter your current academic and lifestyle details to get an AI-powered performance prediction.</p>
+    </div>
+
+    <div class="card">
+        <form action="/api/predict" method="POST" id="predictForm">
+            
+            <h3 style="margin-bottom: 16px; font-size: 18px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Study & Lifestyle Details</h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="form-group">
+                    <label>Study Hours (Per Day)</label>
+                    <input type="number" name="study_hours" class="form-control" step="0.1" min="0" max="15" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Attendance (%)</label>
+                    <input type="number" name="attendance" class="form-control" step="0.1" min="0" max="100" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Sleep Hours</label>
+                    <input type="number" name="sleep_hours" class="form-control" step="0.1" min="0" max="12" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Internet Usage (Hours/Day)</label>
+                    <input type="number" name="internet_usage" class="form-control" step="0.1" min="0" max="12" required>
+                </div>
+            </div>
+
+            <h3 style="margin-top: 24px; margin-bottom: 16px; font-size: 18px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Academic Course & Subjects</h3>
+            
+            <div class="form-group">
+                <label>Course / Stream (e.g. Engineering, Medical, High School)</label>
+                <input type="text" name="stream" class="form-control" placeholder="Enter your course name" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Previous Overall Score / CGPA (%)</label>
+                <input type="number" name="previous_overall_score" class="form-control" step="0.1" min="0" max="100">
+                <small style="color: var(--text-muted);">Leave blank if not applicable (will default to your subject average)</small>
+            </div>
+
+            <!-- Subject Entry Method Toggles -->
+            <div style="margin-top: 24px; margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-main);">Subject Entry Method</label>
+                <div style="display: flex; gap: 12px;">
+                    <button type="button" id="entryManualBtn" class="btn" style="flex: 1; padding: 10px; background-color: var(--primary); color: #FFF; border: 1px solid var(--primary); font-weight: 600; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+                        <i class="fa-solid fa-keyboard" style="margin-right: 6px;"></i> Enter Manually
+                    </button>
+                    <button type="button" id="entryUploadBtn" class="btn" style="flex: 1; padding: 10px; background-color: #F3F4F6; color: var(--text-main); border: 1px solid var(--border-color); font-weight: 600; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+                        <i class="fa-solid fa-file-arrow-up" style="margin-right: 6px;"></i> Upload Report Card (Image/PDF)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Upload Section (Hidden by default) -->
+            <div id="uploadReportSection" style="display: none; background-color: #F9FAFB; border: 2px dashed var(--border-color); border-radius: 8px; padding: 24px; text-align: center; margin-bottom: 20px; transition: all 0.3s ease;">
+                <div style="font-size: 36px; color: var(--text-muted); margin-bottom: 12px;">
+                    <i class="fa-solid fa-file-invoice" style="color: var(--primary); opacity: 0.7;"></i>
+                </div>
+                <h4 style="font-size: 15px; font-weight: 700; margin-bottom: 6px; color: var(--text-main);">Upload Report Card Document</h4>
+                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">Supports PNG, JPG, JPEG, and PDF formats</p>
+                <input type="file" id="reportCardInput" accept="image/*,application/pdf" style="display: none;">
+                <button type="button" class="btn" id="uploadSelectBtn" style="background-color: #EFF6FF; color: var(--primary); border: 1px solid var(--primary); padding: 8px 16px; font-weight: 600; cursor: pointer; border-radius: 6px;">
+                    Choose File
+                </button>
+                <div id="uploadStatusText" style="display: none; margin-top: 12px; font-size: 13px; font-weight: 600; color: var(--primary);">
+                    <i class="fa-solid fa-spinner fa-spin"></i> Processing and extracting marks...
+                </div>
+            </div>
+
+            <div style="margin-top: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <label style="margin-bottom: 0;">Subjects & Marks</label>
+                    <button type="button" class="btn btn-primary" id="addSubjectBtn" style="padding: 6px 12px; font-size: 14px;">
+                        <i class="fa-solid fa-plus"></i> Add Subject
+                    </button>
+                </div>
+                
+                <div id="subjectsContainer">
+                    <!-- Default first subject -->
+                    <div class="subject-row" style="display: flex; gap: 16px; margin-bottom: 12px; align-items: center;">
+                        <input type="text" class="form-control subject-name" placeholder="Subject Name (e.g. Python)" required style="flex: 2;">
+                        <input type="number" class="form-control subject-score" placeholder="Score (0-100)" min="0" max="100" step="0.1" required style="flex: 1;">
+                        <button type="button" class="remove-subject-btn" style="background: none; border: none; color: #EF4444; cursor: pointer; font-size: 18px;"><i class="fa-solid fa-circle-xmark"></i></button>
+                    </div>
+                </div>
+                
+                <input type="hidden" name="subjects_json" id="subjectsJson">
+            </div>
+
+            <div style="margin-top: 32px; text-align: right;">
+                <button type="submit" class="btn btn-primary" style="padding: 12px 24px; font-size: 16px;">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Predict Performance
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const container = document.getElementById("subjectsContainer");
+        const addBtn = document.getElementById("addSubjectBtn");
+        const form = document.getElementById("predictForm");
+        const jsonInput = document.getElementById("subjectsJson");
+
+        // UI Toggles
+        const entryManualBtn = document.getElementById("entryManualBtn");
+        const entryUploadBtn = document.getElementById("entryUploadBtn");
+        const uploadReportSection = document.getElementById("uploadReportSection");
+        const reportCardInput = document.getElementById("reportCardInput");
+        const uploadSelectBtn = document.getElementById("uploadSelectBtn");
+        const uploadStatusText = document.getElementById("uploadStatusText");
+
+        entryManualBtn.addEventListener("click", function() {
+            entryManualBtn.style.backgroundColor = "var(--primary)";
+            entryManualBtn.style.color = "#FFF";
+            entryManualBtn.style.borderColor = "var(--primary)";
+            
+            entryUploadBtn.style.backgroundColor = "#F3F4F6";
+            entryUploadBtn.style.color = "var(--text-main)";
+            entryUploadBtn.style.borderColor = "var(--border-color)";
+            
+            uploadReportSection.style.display = "none";
+        });
+
+        entryUploadBtn.addEventListener("click", function() {
+            entryUploadBtn.style.backgroundColor = "var(--primary)";
+            entryUploadBtn.style.color = "#FFF";
+            entryUploadBtn.style.borderColor = "var(--primary)";
+            
+            entryManualBtn.style.backgroundColor = "#F3F4F6";
+            entryManualBtn.style.color = "var(--text-main)";
+            entryManualBtn.style.borderColor = "var(--border-color)";
+            
+            uploadReportSection.style.display = "block";
+        });
+
+        uploadSelectBtn.addEventListener("click", function() {
+            reportCardInput.click();
+        });
+
+        reportCardInput.addEventListener("change", function() {
+            if (reportCardInput.files.length === 0) return;
+            const file = reportCardInput.files[0];
+            const formData = new FormData();
+            formData.append("file", file);
+
+            // Show extraction loading status
+            uploadStatusText.style.display = "block";
+            uploadSelectBtn.disabled = true;
+            uploadSelectBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Extracting...`;
+
+            fetch("/api/extract-report-card", {
+                method: "POST",
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "success") {
+                    if (data.subjects && data.subjects.length > 0) {
+                        // Clear existing manual subject rows
+                        container.innerHTML = "";
+                        
+                        data.subjects.forEach(subj => {
+                            const row = document.createElement("div");
+                            row.className = "subject-row";
+                            row.style.display = "flex";
+                            row.style.gap = "16px";
+                            row.style.marginBottom = "12px";
+                            row.style.alignItems = "center";
+                            
+                            row.innerHTML = `
+                                <input type="text" class="form-control subject-name" value="${subj.name}" placeholder="Subject Name" required style="flex: 2;">
+                                <input type="number" class="form-control subject-score" value="${subj.score}" placeholder="Score (0-100)" min="0" max="100" step="0.1" required style="flex: 1;">
+                                <button type="button" class="remove-subject-btn" style="background: none; border: none; color: #EF4444; cursor: pointer; font-size: 18px;"><i class="fa-solid fa-circle-xmark"></i></button>
+                            `;
+                            container.appendChild(row);
+                        });
+                    } else {
+                        alert("No subjects or scores could be parsed from this file. Please verify it contains text/marks or add them manually.");
+                    }
+                } else {
+                    alert("Error parsing file: " + (data.message || "Unknown error"));
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert("An error occurred during report card extraction. Please try again.");
+            })
+            .finally(() => {
+                uploadStatusText.style.display = "none";
+                uploadSelectBtn.disabled = false;
+                uploadSelectBtn.innerHTML = `Choose File`;
+                reportCardInput.value = ""; // reset file input selection
+            });
+        });
+
+        // Add Subject Row
+        addBtn.addEventListener("click", function() {
+            const row = document.createElement("div");
+            row.className = "subject-row";
+            row.style.display = "flex";
+            row.style.gap = "16px";
+            row.style.marginBottom = "12px";
+            row.style.alignItems = "center";
+            
+            row.innerHTML = `
+                <input type="text" class="form-control subject-name" placeholder="Subject Name" required style="flex: 2;">
+                <input type="number" class="form-control subject-score" placeholder="Score (0-100)" min="0" max="100" step="0.1" required style="flex: 1;">
+                <button type="button" class="remove-subject-btn" style="background: none; border: none; color: #EF4444; cursor: pointer; font-size: 18px;"><i class="fa-solid fa-circle-xmark"></i></button>
+            `;
+            container.appendChild(row);
+        });
+
+        // Remove Subject Row
+        container.addEventListener("click", function(e) {
+            if (e.target.closest(".remove-subject-btn")) {
+                const row = e.target.closest(".subject-row");
+                if (container.querySelectorAll(".subject-row").length > 1) {
+                    row.remove();
+                } else {
+                    alert("You must have at least one subject.");
+                }
+            }
+        });
+
+        // Form Submit -> Build JSON
+        form.addEventListener("submit", function(e) {
+            const rows = container.querySelectorAll(".subject-row");
+            const subjects = [];
+            
+            rows.forEach(row => {
+                const name = row.querySelector(".subject-name").value.trim();
+                const score = parseFloat(row.querySelector(".subject-score").value);
+                if (name && !isNaN(score)) {
+                    subjects.push({ name: name, score: score });
+                }
+            });
+            
+            if (subjects.length === 0) {
+                e.preventDefault();
+                alert("Please add at least one valid subject and score.");
+                return;
+            }
+            
+            jsonInput.value = JSON.stringify(subjects);
+        });
+    });
+</script>
+{% endblock %}

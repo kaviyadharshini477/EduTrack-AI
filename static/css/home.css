@@ -1,0 +1,429 @@
+/* ==========================================
+   Google Font
+========================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+/* ==========================================
+   Variables
+========================================== */
+
+:root{
+
+    --primary:#1E3A8A;
+
+    --secondary:#2563EB;
+
+    --accent:#3B82F6;
+
+    --light:#F8FAFC;
+
+    --white:#FFFFFF;
+
+    --dark:#1F2937;
+
+    --gray:#6B7280;
+
+    --border:#E5E7EB;
+
+}
+
+/* ==========================================
+   Reset
+========================================== */
+
+*{
+
+    margin:0;
+
+    padding:0;
+
+    box-sizing:border-box;
+
+}
+
+body{
+
+    font-family:'Poppins',sans-serif;
+
+    background:#F8FAFC;
+
+    color:var(--dark);
+
+}
+
+/* ==========================================
+   Navbar
+========================================== */
+
+.navbar{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    padding:18px 80px;
+
+    background:white;
+
+    box-shadow:0 5px 20px rgba(0,0,0,.08);
+
+    position:sticky;
+
+    top:0;
+
+    z-index:1000;
+
+}
+
+.logo{
+
+    font-size:24px;
+
+    font-weight:700;
+
+    color:var(--primary);
+
+}
+
+.nav-links{
+
+    display:flex;
+
+    list-style:none;
+
+    gap:30px;
+
+}
+
+.nav-links a{
+
+    text-decoration:none;
+
+    color:var(--dark);
+
+    font-weight:500;
+
+    transition:.3s;
+
+}
+
+.nav-links a:hover{
+
+    color:var(--secondary);
+
+}
+
+/* ==========================================
+   Hero Section
+========================================== */
+
+.hero{
+
+    height:85vh;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    text-align:center;
+
+    background:linear-gradient(
+        135deg,
+        #EEF4FF,
+        #FFFFFF
+    );
+
+}
+
+.hero-content{
+
+    width:800px;
+
+}
+
+.hero h1{
+
+    font-size:60px;
+
+    color:var(--primary);
+
+    margin-bottom:20px;
+
+}
+
+.hero p{
+
+    font-size:20px;
+
+    color:var(--gray);
+
+    line-height:1.8;
+
+    margin-bottom:40px;
+
+}
+
+.hero-btn{
+
+    display:inline-block;
+
+    text-decoration:none;
+
+    padding:18px 40px;
+
+    background:linear-gradient(
+        135deg,
+        var(--primary),
+        var(--secondary)
+    );
+
+    color:white;
+
+    border-radius:12px;
+
+    font-size:18px;
+
+    font-weight:600;
+
+    transition:.3s;
+
+}
+
+.hero-btn:hover{
+
+    transform:translateY(-3px);
+
+    box-shadow:0 15px 30px rgba(37,99,235,.25);
+
+}
+
+/* ==========================================
+   Sections
+========================================== */
+
+.section{
+
+    max-width:1200px;
+
+    margin:auto;
+
+    padding:80px 20px;
+
+}
+
+.section h2{
+
+    text-align:center;
+
+    color:var(--primary);
+
+    font-size:38px;
+
+    margin-bottom:25px;
+
+}
+
+.section p{
+
+    text-align:center;
+
+    line-height:1.9;
+
+    color:var(--gray);
+
+}
+
+/* ==========================================
+   Features
+========================================== */
+
+.features{
+
+    margin-top:50px;
+
+    display:grid;
+
+    grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+
+    gap:25px;
+
+}
+
+.card{
+
+    background:white;
+
+    padding:30px;
+
+    border-radius:18px;
+
+    box-shadow:0 10px 30px rgba(0,0,0,.08);
+
+    transition:.3s;
+
+}
+
+.card:hover{
+
+    transform:translateY(-8px);
+
+}
+
+.card h3{
+
+    color:var(--primary);
+
+    margin-bottom:15px;
+
+}
+
+.card p{
+
+    text-align:left;
+
+}
+
+/* ==========================================
+   Steps
+========================================== */
+
+.steps{
+
+    margin-top:50px;
+
+    display:grid;
+
+    grid-template-columns:repeat(4,1fr);
+
+    gap:20px;
+
+}
+
+.step{
+
+    background:white;
+
+    border-radius:18px;
+
+    padding:25px;
+
+    text-align:center;
+
+    box-shadow:0 10px 30px rgba(0,0,0,.08);
+
+}
+
+.step h3{
+
+    width:60px;
+
+    height:60px;
+
+    margin:auto;
+
+    border-radius:50%;
+
+    background:var(--secondary);
+
+    color:white;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    margin-bottom:15px;
+
+}
+
+/* ==========================================
+   Footer
+========================================== */
+
+footer{
+
+    background:var(--primary);
+
+    color:white;
+
+    text-align:center;
+
+    padding:35px;
+
+    margin-top:80px;
+
+}
+
+/* ==========================================
+   Responsive
+========================================== */
+
+@media(max-width:900px){
+
+    .navbar{
+
+        padding:20px;
+
+        flex-direction:column;
+
+        gap:20px;
+
+    }
+
+    .hero h1{
+
+        font-size:42px;
+
+    }
+
+    .hero{
+
+        height:auto;
+
+        padding:80px 20px;
+
+    }
+
+    .steps{
+
+        grid-template-columns:repeat(2,1fr);
+
+    }
+
+}
+
+@media(max-width:600px){
+
+    .nav-links{
+
+        flex-direction:column;
+
+        text-align:center;
+
+    }
+
+    .hero h1{
+
+        font-size:34px;
+
+    }
+
+    .hero p{
+
+        font-size:17px;
+
+    }
+
+    .steps{
+
+        grid-template-columns:1fr;
+
+    }
+
+}

@@ -1,0 +1,839 @@
+{% extends "base.html" %}
+
+{% block title %}What-If Simulator | EduTrack AI{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Premium Slider Styling */
+    .slider-container {
+        margin-bottom: 24px;
+    }
+    .slider-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    .slider-label {
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--text-main);
+    }
+    .slider-value-display {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--primary);
+        background-color: #EFF6FF;
+        padding: 2px 8px;
+        border-radius: 6px;
+    }
+    .slider-control-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+    .slider-control-row input[type="range"] {
+        flex-grow: 1;
+        height: 6px;
+        border-radius: 3px;
+        outline: none;
+        background: #E5E7EB;
+        -webkit-appearance: none;
+        cursor: pointer;
+    }
+    .slider-control-row input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: var(--primary);
+        transition: transform 0.1s ease;
+    }
+    .slider-control-row input[type="range"]::-webkit-slider-thumb:hover {
+        transform: scale(1.2);
+    }
+    
+    /* Difference Badge Styling */
+    .diff-badge {
+        font-size: 12px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 50px;
+        text-align: center;
+        min-width: 60px;
+        display: inline-block;
+    }
+    .diff-neutral { background-color: #F3F4F6; color: #4B5563; }
+    .diff-positive { background-color: #D1FAE5; color: #065F46; }
+    .diff-negative { background-color: #FEE2E2; color: #991B1B; }
+
+    /* Glassmorphism Simulation Cards */
+    .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+    .metric-card {
+        padding: 16px;
+        border-radius: var(--radius);
+        text-align: center;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        border: 1px solid var(--border-color);
+        background: #FFF;
+    }
+    .metric-title {
+        font-size: 11px;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+    }
+    .metric-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text-main);
+    }
+    
+    /* Scenarios list */
+    .scenario-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 16px;
+        margin-top: 16px;
+    }
+    .scenario-card {
+        background-color: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        padding: 16px;
+        transition: var(--transition);
+        position: relative;
+    }
+    .scenario-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Loading overlay */
+    .sim-loading {
+        opacity: 0.5;
+        pointer-events: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 1100px; margin: 0 auto;">
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+        <div>
+            <h1 style="font-size: 24px; font-weight: 700; color: var(--text-main); margin-bottom: 8px; text-align: left;">What-If Simulator</h1>
+            <p style="color: var(--text-muted);">Tweak your academic and lifestyle inputs to see their estimated impact in real-time without modifying your saved prediction history.</p>
+        </div>
+        
+        {% if predictions %}
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <label style="margin-top: 0; font-weight: 500; font-size: 14px; white-space: nowrap;">Baseline Prediction:</label>
+            <select id="baselineSelector" class="form-control" style="width: 240px; padding: 8px 12px; font-size: 14px;">
+                {% for pred in predictions %}
+                <option value="{{ pred.id }}" data-study="{{ pred.study_hours }}" data-attendance="{{ pred.attendance }}" data-sleep="{{ pred.sleep_hours }}" data-internet="{{ pred.internet_usage }}" data-avg-marks="{{ pred.average_subject_score }}" data-score="{{ pred.predicted_score }}">
+                    {{ pred.prediction_date }} (Score: {{ pred.predicted_score }}%)
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if not predictions %}
+    <div class="card" style="text-align: center; padding: 48px 24px;">
+        <div style="font-size: 56px; color: #E5E7EB; margin-bottom: 20px;"><i class="fa-solid fa-sliders"></i></div>
+        <h3 style="font-size: 20px; font-weight: 600; color: var(--text-main); margin-bottom: 12px;">No Baseline Prediction Found</h3>
+        <p style="color: var(--text-muted); max-width: 500px; margin: 0 auto 24px auto; line-height: 1.6;">
+            The simulator needs a base prediction to compare against. Create a performance prediction first to set your initial academic and lifestyle values.
+        </p>
+        <a href="{{ url_for('predict_page') }}" class="btn btn-primary"><i class="fa-solid fa-wand-magic-sparkles"></i> Predict Your Performance Now</a>
+    </div>
+    {% else %}
+    
+    <div style="display: grid; grid-template-columns: 1.2fr 1.3fr; gap: 32px; align-items: start;">
+        
+        <!-- Interactive Controls Card -->
+        <div class="card" id="controlsContainer">
+            <h3 style="font-size: 18px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-sliders" style="color: var(--primary);"></i> Simulation Sliders
+            </h3>
+            
+            <!-- Study Hours -->
+            <div class="slider-container">
+                <div class="slider-header">
+                    <span class="slider-label">Study Hours (Daily)</span>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <span class="slider-value-display" id="studyDisplay">0.0</span>
+                        <span class="diff-badge diff-neutral" id="studyDiff">No change</span>
+                    </div>
+                </div>
+                <div class="slider-control-row">
+                    <input type="range" id="studySlider" min="0" max="15" step="0.1" value="4">
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                    <span id="studyBaselineLabel">Baseline: 0.0 hrs</span>
+                    <span>Max: 15 hrs</span>
+                </div>
+            </div>
+
+            <!-- Attendance -->
+            <div class="slider-container">
+                <div class="slider-header">
+                    <span class="slider-label">Attendance Rate</span>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <span class="slider-value-display" id="attendanceDisplay">0%</span>
+                        <span class="diff-badge diff-neutral" id="attendanceDiff">No change</span>
+                    </div>
+                </div>
+                <div class="slider-control-row">
+                    <input type="range" id="attendanceSlider" min="0" max="100" step="1" value="80">
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                    <span id="attendanceBaselineLabel">Baseline: 0%</span>
+                    <span>Max: 100%</span>
+                </div>
+            </div>
+
+            <!-- Average Marks -->
+            <div class="slider-container">
+                <div class="slider-header">
+                    <span class="slider-label">Average Marks (Subject Scores)</span>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <span class="slider-value-display" id="avgMarksDisplay">0%</span>
+                        <span class="diff-badge diff-neutral" id="avgMarksDiff">No change</span>
+                    </div>
+                </div>
+                <div class="slider-control-row">
+                    <input type="range" id="avgMarksSlider" min="0" max="100" step="1" value="70">
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                    <span id="avgMarksBaselineLabel">Baseline: 0%</span>
+                    <span>Max: 100%</span>
+                </div>
+            </div>
+
+            <!-- Sleep Hours -->
+            <div class="slider-container">
+                <div class="slider-header">
+                    <span class="slider-label">Sleep Hours (Daily)</span>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <span class="slider-value-display" id="sleepDisplay">0.0</span>
+                        <span class="diff-badge diff-neutral" id="sleepDiff">No change</span>
+                    </div>
+                </div>
+                <div class="slider-control-row">
+                    <input type="range" id="sleepSlider" min="0" max="12" step="0.1" value="7">
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                    <span id="sleepBaselineLabel">Baseline: 0.0 hrs</span>
+                    <span>Max: 12 hrs</span>
+                </div>
+            </div>
+
+            <!-- Internet Usage -->
+            <div class="slider-container">
+                <div class="slider-header">
+                    <span class="slider-label">Internet Usage (Daily)</span>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <span class="slider-value-display" id="internetDisplay">0.0</span>
+                        <span class="diff-badge diff-neutral" id="internetDiff">No change</span>
+                    </div>
+                </div>
+                <div class="slider-control-row">
+                    <input type="range" id="internetSlider" min="0" max="12" step="0.1" value="3">
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                    <span id="internetBaselineLabel">Baseline: 0.0 hrs</span>
+                    <span>Max: 12 hrs</span>
+                </div>
+            </div>
+
+            <!-- Stress Level -->
+            <div class="slider-container">
+                <div class="slider-header">
+                    <span class="slider-label">Stress Level (SaaS Metric)</span>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <span class="slider-value-display" id="stressDisplay">5</span>
+                        <span class="diff-badge diff-neutral" id="stressDiff">No change</span>
+                    </div>
+                </div>
+                <div class="slider-control-row">
+                    <input type="range" id="stressSlider" min="1" max="10" step="1" value="5">
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                    <span>Baseline: 5 (Medium)</span>
+                    <span>Scale: 1-10</span>
+                </div>
+            </div>
+
+            <!-- Exercise Hours -->
+            <div class="slider-container">
+                <div class="slider-header">
+                    <span class="slider-label">Exercise Hours (Weekly)</span>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <span class="slider-value-display" id="exerciseDisplay">2.0</span>
+                        <span class="diff-badge diff-neutral" id="exerciseDiff">No change</span>
+                    </div>
+                </div>
+                <div class="slider-control-row">
+                    <input type="range" id="exerciseSlider" min="0" max="10" step="0.5" value="2">
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                    <span>Baseline: 2.0 hrs (Default)</span>
+                    <span>Max: 10 hrs</span>
+                </div>
+            </div>
+            
+            <button type="button" class="btn" style="background-color: #F3F4F6; color: var(--text-main); margin-top: 10px;" id="resetBtn">
+                <i class="fa-solid fa-undo"></i> Reset to Baseline Values
+            </button>
+        </div>
+
+        <!-- Simulation Results Panel -->
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+            
+            <!-- Metric Cards -->
+            <div class="metric-grid">
+                <div class="metric-card" style="border-top: 4px solid var(--text-muted);">
+                    <div class="metric-title">Current Score</div>
+                    <div class="metric-value" id="currentScoreDisplay">0.00%</div>
+                </div>
+                
+                <div class="metric-card" style="border-top: 4px solid var(--primary);" id="simulatedCard">
+                    <div class="metric-title">Simulated Score</div>
+                    <div class="metric-value" id="simulatedScoreDisplay">0.00%</div>
+                </div>
+
+                <div class="metric-card" style="border-top: 4px solid var(--success);" id="improvementCard">
+                    <div class="metric-title">Improvement</div>
+                    <div class="metric-value" id="improvementDisplay">+0.00%</div>
+                </div>
+            </div>
+
+            <!-- Comparison Chart -->
+            <div class="card">
+                <h3 style="font-size: 18px; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-chart-column" style="color: #8B5CF6;"></i> Parameter Comparison (Normalized)
+                </h3>
+                <div style="position: relative; height: 260px; width: 100%;">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Save Simulation Scenario Card -->
+            <div class="card">
+                <h3 style="font-size: 16px; margin-bottom: 12px;">Save Simulation Scenario</h3>
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <input type="text" id="scenarioNameInput" class="form-control" placeholder="Scenario Name (e.g. Dream Schedule)" style="flex-grow: 1; padding: 10px 14px;">
+                    <button type="button" class="btn btn-primary" id="saveScenarioBtn" style="margin-top: 0; padding: 11px 20px; white-space: nowrap;">
+                        <i class="fa-solid fa-floppy-disk"></i> Save Scenario
+                    </button>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
+    <!-- Saved Scenarios List -->
+    <hr style="margin: 40px 0 24px 0;">
+    <div>
+        <h2 style="font-size: 20px; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">Saved Simulation Scenarios</h2>
+        <p style="color: var(--text-muted); margin-bottom: 16px;">Quickly load or compare your saved hypothetical routines.</p>
+        
+        <div class="scenario-grid" id="scenariosContainer">
+            {% if simulations %}
+                {% for sim in simulations %}
+                <div class="scenario-card" id="sim-card-{{ sim.id }}">
+                    <h4 style="font-size: 16px; font-weight: 600; color: var(--text-main); margin-bottom: 8px;">{{ sim.scenario_name }}</h4>
+                    <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Created: {{ sim.created_at }}</p>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; text-align: center; background-color: #F9FAFB; padding: 8px; border-radius: 8px;">
+                        <div>
+                            <span style="font-size: 10px; text-transform: uppercase; color: var(--text-muted); display: block;">Base</span>
+                            <strong style="font-size: 14px; color: var(--text-muted);">{{ sim.baseline_score }}%</strong>
+                        </div>
+                        <div>
+                            <span style="font-size: 10px; text-transform: uppercase; color: var(--text-muted); display: block;">Simulated</span>
+                            <strong style="font-size: 14px; color: var(--primary);">{{ sim.simulated_score }}%</strong>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px;">
+                        <button type="button" class="btn load-scenario-btn" style="flex: 2; margin-top: 0; padding: 8px; font-size: 13px; background-color: #EFF6FF; color: var(--primary);" 
+                                data-id="{{ sim.id }}" 
+                                data-study="{{ sim.study_hours }}" 
+                                data-attendance="{{ sim.attendance }}" 
+                                data-sleep="{{ sim.sleep_hours }}" 
+                                data-internet="{{ sim.internet_usage }}" 
+                                data-avg-marks="{{ sim.average_subject_score }}" 
+                                data-stress="{{ sim.stress_level }}" 
+                                data-exercise="{{ sim.exercise_hours }}">
+                            <i class="fa-solid fa-folder-open"></i> Load
+                        </button>
+                        <button type="button" class="btn delete-scenario-btn" style="flex: 1; margin-top: 0; padding: 8px; font-size: 13px; background-color: #FEF2F2; color: #EF4444;" data-id="{{ sim.id }}">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="card" id="noScenariosPlaceholder" style="grid-column: 1 / -1; text-align: center; padding: 24px; color: var(--text-muted);">
+                    <p>No saved scenarios yet. Adjust the sliders above and click "Save Scenario" to keep them here.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/chart.js') }}"></script>
+{% if predictions %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // --------------------------------------------------
+    // DOM Selectors
+    // --------------------------------------------------
+    const selector = document.getElementById("baselineSelector");
+    
+    // Sliders
+    const studySlider = document.getElementById("studySlider");
+    const attendanceSlider = document.getElementById("attendanceSlider");
+    const avgMarksSlider = document.getElementById("avgMarksSlider");
+    const sleepSlider = document.getElementById("sleepSlider");
+    const internetSlider = document.getElementById("internetSlider");
+    const stressSlider = document.getElementById("stressSlider");
+    const exerciseSlider = document.getElementById("exerciseSlider");
+    
+    // Displays
+    const studyDisplay = document.getElementById("studyDisplay");
+    const attendanceDisplay = document.getElementById("attendanceDisplay");
+    const avgMarksDisplay = document.getElementById("avgMarksDisplay");
+    const sleepDisplay = document.getElementById("sleepDisplay");
+    const internetDisplay = document.getElementById("internetDisplay");
+    const stressDisplay = document.getElementById("stressDisplay");
+    const exerciseDisplay = document.getElementById("exerciseDisplay");
+    
+    // Baselines
+    const studyBaselineLabel = document.getElementById("studyBaselineLabel");
+    const attendanceBaselineLabel = document.getElementById("attendanceBaselineLabel");
+    const avgMarksBaselineLabel = document.getElementById("avgMarksBaselineLabel");
+    const sleepBaselineLabel = document.getElementById("sleepBaselineLabel");
+    const internetBaselineLabel = document.getElementById("internetBaselineLabel");
+    
+    // Diff Badges
+    const studyDiff = document.getElementById("studyDiff");
+    const attendanceDiff = document.getElementById("attendanceDiff");
+    const avgMarksDiff = document.getElementById("avgMarksDiff");
+    const sleepDiff = document.getElementById("sleepDiff");
+    const internetDiff = document.getElementById("internetDiff");
+    const stressDiff = document.getElementById("stressDiff");
+    const exerciseDiff = document.getElementById("exerciseDiff");
+    
+    // Output Metrics
+    const currentScoreDisplay = document.getElementById("currentScoreDisplay");
+    const simulatedScoreDisplay = document.getElementById("simulatedScoreDisplay");
+    const improvementDisplay = document.getElementById("improvementDisplay");
+    const improvementCard = document.getElementById("improvementCard");
+    
+    // Controls Container
+    const controlsContainer = document.getElementById("controlsContainer");
+    
+    // Scenario actions
+    const scenarioNameInput = document.getElementById("scenarioNameInput");
+    const saveScenarioBtn = document.getElementById("saveScenarioBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    
+    // Baseline variables cache
+    let baselineData = {};
+    let simulatedScoreCache = 0;
+    
+    // --------------------------------------------------
+    // Chart Setup
+    // --------------------------------------------------
+    const compCtx = document.getElementById('comparisonChart').getContext('2d');
+    const compChart = new Chart(compCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Study Hours', 'Attendance', 'Avg Marks', 'Sleep Hours', 'Internet Use', 'Stress Level', 'Exercise'],
+            datasets: [
+                {
+                    label: 'Baseline',
+                    data: [0, 0, 0, 0, 0, 0, 0],
+                    backgroundColor: 'rgba(156, 163, 175, 0.6)',
+                    borderColor: 'rgb(156, 163, 175)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Simulated',
+                    data: [0, 0, 0, 0, 0, 0, 0],
+                    backgroundColor: 'rgba(37, 99, 235, 0.8)',
+                    borderColor: 'rgb(37, 99, 235)',
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    min: 0,
+                    max: 100,
+                    ticks: {
+                        callback: function(val) { return val + '%'; }
+                    }
+                }
+            },
+            plugins: {
+                legend: { position: 'top' }
+            }
+        }
+    });
+
+    // Normalize value to a 0-100 scale for comparison graph
+    function normalize(val, maxVal) {
+        return Math.min(100, Math.max(0, (val / maxVal) * 100));
+    }
+    
+    function updateChart() {
+        // Normalizations:
+        // study: 15 max, attendance: 100 max, marks: 100 max, sleep: 12 max, internet: 12 max, stress: 10 max, exercise: 10 max
+        const baseNorm = [
+            normalize(baselineData.study_hours, 15),
+            baselineData.attendance,
+            baselineData.average_subject_score,
+            normalize(baselineData.sleep_hours, 12),
+            normalize(baselineData.internet_usage, 12),
+            normalize(5, 10), // stress default baseline assumed 5
+            normalize(2, 10)  // exercise default baseline assumed 2
+        ];
+        
+        const simNorm = [
+            normalize(parseFloat(studySlider.value), 15),
+            parseFloat(attendanceSlider.value),
+            parseFloat(avgMarksSlider.value),
+            normalize(parseFloat(sleepSlider.value), 12),
+            normalize(parseFloat(internetSlider.value), 12),
+            normalize(parseInt(stressSlider.value), 10),
+            normalize(parseFloat(exerciseSlider.value), 10)
+        ];
+        
+        compChart.data.datasets[0].data = baseNorm;
+        compChart.data.datasets[1].data = simNorm;
+        compChart.update();
+    }
+    
+    // --------------------------------------------------
+    // Core Functions
+    // --------------------------------------------------
+    
+    function loadBaseline() {
+        const opt = selector.options[selector.selectedIndex];
+        
+        baselineData = {
+            id: parseInt(selector.value),
+            study_hours: parseFloat(opt.dataset.study),
+            attendance: parseFloat(opt.dataset.attendance),
+            sleep_hours: parseFloat(opt.dataset.sleep),
+            internet_usage: parseFloat(opt.dataset.internet),
+            average_subject_score: parseFloat(opt.dataset.avgMarks),
+            predicted_score: parseFloat(opt.dataset.score)
+        };
+        
+        // Reset baseline label content
+        studyBaselineLabel.innerText = `Baseline: ${baselineData.study_hours.toFixed(1)} hrs`;
+        attendanceBaselineLabel.innerText = `Baseline: ${baselineData.attendance.toFixed(1)}%`;
+        avgMarksBaselineLabel.innerText = `Baseline: ${baselineData.average_subject_score.toFixed(1)}%`;
+        sleepBaselineLabel.innerText = `Baseline: ${baselineData.sleep_hours.toFixed(1)} hrs`;
+        internetBaselineLabel.innerText = `Baseline: ${baselineData.internet_usage.toFixed(1)} hrs`;
+        
+        // Reset sliders to baseline
+        resetSliders();
+    }
+    
+    function resetSliders() {
+        studySlider.value = baselineData.study_hours;
+        attendanceSlider.value = baselineData.attendance;
+        avgMarksSlider.value = baselineData.average_subject_score;
+        sleepSlider.value = baselineData.sleep_hours;
+        internetSlider.value = baselineData.internet_usage;
+        stressSlider.value = 5; // Default middle
+        exerciseSlider.value = 2; // Default baseline
+        
+        updateSliderDisplays();
+        triggerSimulation();
+    }
+    
+    function updateSliderDisplays() {
+        const study = parseFloat(studySlider.value);
+        const attendance = parseFloat(attendanceSlider.value);
+        const avgMarks = parseFloat(avgMarksSlider.value);
+        const sleep = parseFloat(sleepSlider.value);
+        const internet = parseFloat(internetSlider.value);
+        const stress = parseInt(stressSlider.value);
+        const exercise = parseFloat(exerciseSlider.value);
+        
+        studyDisplay.innerText = study.toFixed(1) + " hrs";
+        attendanceDisplay.innerText = attendance + "%";
+        avgMarksDisplay.innerText = avgMarks + "%";
+        sleepDisplay.innerText = sleep.toFixed(1) + " hrs";
+        internetDisplay.innerText = internet.toFixed(1) + " hrs";
+        
+        // Stress text mapping
+        let stressText = stress;
+        if (stress <= 3) stressText += " (Low)";
+        else if (stress <= 7) stressText += " (Med)";
+        else stressText += " (High)";
+        stressDisplay.innerText = stressText;
+        
+        exerciseDisplay.innerText = exercise.toFixed(1) + " hrs";
+        
+        // Update difference badges
+        updateDiffBadge(studyDiff, study - baselineData.study_hours, " hrs");
+        updateDiffBadge(attendanceDiff, attendance - baselineData.attendance, "%");
+        updateDiffBadge(avgMarksDiff, avgMarks - baselineData.average_subject_score, "%");
+        updateDiffBadge(sleepDiff, sleep - baselineData.sleep_hours, " hrs");
+        updateDiffBadge(internetDiff, internet - baselineData.internet_usage, " hrs");
+        
+        // Lifestyle defaults are stress=5, exercise=2
+        updateDiffBadge(stressDiff, stress - 5, "", true);
+        updateDiffBadge(exerciseDiff, exercise - 2, " hrs");
+    }
+    
+    function updateDiffBadge(element, diff, unit, reverseColor = false) {
+        element.className = "diff-badge";
+        
+        if (Math.abs(diff) < 0.05) {
+            element.innerText = "No change";
+            element.classList.add("diff-neutral");
+            return;
+        }
+        
+        const sign = diff > 0 ? "+" : "";
+        element.innerText = `${sign}${diff.toFixed(1)}${unit}`;
+        
+        // Some metrics have inverted meanings (e.g. more internet/stress is negative, more study/sleep is positive)
+        let isPositiveEffect = diff > 0;
+        if (element === internetDiff || element === stressDiff) {
+            isPositiveEffect = diff < 0; // Less internet or stress is positive
+        }
+        
+        if (isPositiveEffect) {
+            element.classList.add("diff-positive");
+        } else {
+            element.classList.add("diff-negative");
+        }
+    }
+    
+    // Debounce function to limit request rate
+    let debounceTimer;
+    function triggerSimulation() {
+        updateSliderDisplays();
+        updateChart();
+        
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(runSimulation, 150);
+    }
+    
+    async function runSimulation() {
+        controlsContainer.classList.add("sim-loading");
+        
+        const payload = {
+            prediction_id: baselineData.id,
+            study_hours: parseFloat(studySlider.value),
+            attendance: parseFloat(attendanceSlider.value),
+            sleep_hours: parseFloat(sleepSlider.value),
+            internet_usage: parseFloat(internetSlider.value),
+            average_subject_score: parseFloat(avgMarksSlider.value),
+            stress_level: parseInt(stressSlider.value),
+            exercise_hours: parseFloat(exerciseSlider.value)
+        };
+        
+        try {
+            const response = await fetch("/simulate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            
+            const result = await response.json();
+            controlsContainer.classList.remove("sim-loading");
+            
+            if (response.ok) {
+                // Update outputs
+                simulatedScoreCache = result.simulated_score;
+                
+                currentScoreDisplay.innerText = result.baseline_score.toFixed(2) + "%";
+                simulatedScoreDisplay.innerText = result.simulated_score.toFixed(2) + "%";
+                
+                const diff = result.difference;
+                const sign = diff >= 0 ? "+" : "";
+                improvementDisplay.innerText = `${sign}${diff.toFixed(2)}%`;
+                
+                // Color improvement card
+                improvementCard.style.borderTop = diff >= 0 ? "4px solid var(--success)" : "4px solid var(--danger)";
+                if (diff > 0) {
+                    improvementDisplay.style.color = "var(--success)";
+                } else if (diff < 0) {
+                    improvementDisplay.style.color = "var(--danger)";
+                } else {
+                    improvementDisplay.style.color = "var(--text-main)";
+                }
+            } else {
+                console.error(result.error);
+            }
+        } catch (error) {
+            controlsContainer.classList.remove("sim-loading");
+            console.error("Simulation request failed", error);
+        }
+    }
+    
+    // --------------------------------------------------
+    // Event Listeners
+    // --------------------------------------------------
+    
+    selector.addEventListener("change", loadBaseline);
+    resetBtn.addEventListener("click", resetSliders);
+    
+    const sliders = [studySlider, attendanceSlider, avgMarksSlider, sleepSlider, internetSlider, stressSlider, exerciseSlider];
+    sliders.forEach(slider => {
+        slider.addEventListener("input", triggerSimulation);
+    });
+    
+    // Save scenario
+    saveScenarioBtn.addEventListener("click", async function() {
+        const name = scenarioNameInput.value.trim();
+        if (!name) {
+            alert("Please enter a name for this scenario.");
+            return;
+        }
+        
+        saveScenarioBtn.disabled = true;
+        
+        const payload = {
+            scenario_name: name,
+            prediction_id: baselineData.id,
+            baseline_score: baselineData.predicted_score,
+            study_hours: parseFloat(studySlider.value),
+            attendance: parseFloat(attendanceSlider.value),
+            sleep_hours: parseFloat(sleepSlider.value),
+            internet_usage: parseFloat(internetSlider.value),
+            average_subject_score: parseFloat(avgMarksSlider.value),
+            stress_level: parseInt(stressSlider.value),
+            exercise_hours: parseFloat(exerciseSlider.value),
+            simulated_score: simulatedScoreCache
+        };
+        
+        try {
+            const response = await fetch("/api/simulations/save", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            
+            const result = await response.json();
+            saveScenarioBtn.disabled = false;
+            
+            if (response.ok && result.status === "success") {
+                alert("Scenario saved successfully!");
+                scenarioNameInput.value = "";
+                // Reload page to show new scenario card
+                location.reload();
+            } else {
+                alert("Error saving simulation: " + result.error);
+            }
+        } catch (err) {
+            saveScenarioBtn.disabled = false;
+            console.error(err);
+            alert("Network error saving simulation.");
+        }
+    });
+
+    // Load & Delete Scenarios delegation
+    const container = document.getElementById("scenariosContainer");
+    if (container) {
+        container.addEventListener("click", async function(e) {
+            const loadBtn = e.target.closest(".load-scenario-btn");
+            const deleteBtn = e.target.closest(".delete-scenario-btn");
+            
+            if (loadBtn) {
+                // Load saved values into sliders
+                studySlider.value = parseFloat(loadBtn.dataset.study);
+                attendanceSlider.value = parseFloat(loadBtn.dataset.attendance);
+                avgMarksSlider.value = parseFloat(loadBtn.dataset.avgMarks);
+                sleepSlider.value = parseFloat(loadBtn.dataset.sleep);
+                internetSlider.value = parseFloat(loadBtn.dataset.internet);
+                stressSlider.value = parseInt(loadBtn.dataset.stress);
+                exerciseSlider.value = parseFloat(loadBtn.dataset.exercise);
+                
+                // Select matching baseline prediction if selector has it
+                const matchedPredId = loadBtn.dataset.predictionId;
+                if (matchedPredId && selector.value !== matchedPredId) {
+                    selector.value = matchedPredId;
+                    loadBaseline();
+                }
+                
+                triggerSimulation();
+                
+                // Scroll up smoothly to sliders
+                window.scrollTo({
+                    top: controlsContainer.offsetTop - 20,
+                    behavior: "smooth"
+                });
+            }
+            
+            if (deleteBtn) {
+                if (!confirm("Are you sure you want to delete this simulation?")) return;
+                
+                const simId = deleteBtn.dataset.id;
+                deleteBtn.disabled = true;
+                
+                try {
+                    const response = await fetch(`/api/simulations/delete/${simId}`, {
+                        method: "POST"
+                    });
+                    
+                    if (response.ok) {
+                        const card = document.getElementById(`sim-card-${simId}`);
+                        if (card) card.remove();
+                        
+                        // If no cards left, show placeholder
+                        if (container.querySelectorAll(".scenario-card").length === 0) {
+                            container.innerHTML = `
+                                <div class="card" id="noScenariosPlaceholder" style="grid-column: 1 / -1; text-align: center; padding: 24px; color: var(--text-muted);">
+                                    <p>No saved scenarios yet. Adjust the sliders above and click "Save Scenario" to keep them here.</p>
+                                </div>
+                            `;
+                        }
+                    } else {
+                        deleteBtn.disabled = false;
+                        alert("Failed to delete scenario.");
+                    }
+                } catch (err) {
+                    deleteBtn.disabled = false;
+                    console.error(err);
+                    alert("Network error deleting scenario.");
+                }
+            }
+        });
+    }
+    
+    // --------------------------------------------------
+    // Initial Load
+    // --------------------------------------------------
+    loadBaseline();
+});
+</script>
+{% endif %}
+{% endblock %}

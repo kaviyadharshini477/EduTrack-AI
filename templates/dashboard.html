@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | EduTrack AI{% endblock %}
+
+{% block content %}
+<div>
+    <h1 style="font-size: 24px; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">Dashboard</h1>
+    <p style="color: var(--text-muted); margin-bottom: 24px;">Overview of your academic performance predictions.</p>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; margin-bottom: 32px;">
+        <!-- Total Predictions -->
+        <div class="card" style="display: flex; align-items: center; gap: 20px;">
+            <div style="width: 56px; height: 56px; background-color: #EFF6FF; color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                <i class="fa-solid fa-list-check"></i>
+            </div>
+            <div>
+                <p style="font-size: 14px; color: var(--text-muted); font-weight: 500; text-transform: uppercase;">Total Predictions</p>
+                <h3 style="font-size: 28px; font-weight: 700; color: var(--text-main);">{{ total }}</h3>
+            </div>
+        </div>
+
+        <!-- Average Score -->
+        <div class="card" style="display: flex; align-items: center; gap: 20px;">
+            <div style="width: 56px; height: 56px; background-color: #F5F3FF; color: #8B5CF6; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                <i class="fa-solid fa-chart-pie"></i>
+            </div>
+            <div>
+                <p style="font-size: 14px; color: var(--text-muted); font-weight: 500; text-transform: uppercase;">Average Score</p>
+                <h3 style="font-size: 28px; font-weight: 700; color: var(--text-main);">{{ avg }}</h3>
+            </div>
+        </div>
+
+        <!-- Highest Score -->
+        <div class="card" style="display: flex; align-items: center; gap: 20px;">
+            <div style="width: 56px; height: 56px; background-color: #ECFDF5; color: #10B981; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+            <div>
+                <p style="font-size: 14px; color: var(--text-muted); font-weight: 500; text-transform: uppercase;">Highest Score</p>
+                <h3 style="font-size: 28px; font-weight: 700; color: var(--text-main);">{{ highest }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions & Latest -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+        <!-- Latest Prediction Card -->
+        <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 240px;">
+            <div>
+                <h3 style="font-size: 18px; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-clock-rotate-left" style="color: var(--primary);"></i> Latest Prediction</h3>
+                {% if latest %}
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <p style="font-size: 14px; color: var(--text-muted);">Date: <strong>{{ latest.prediction_date }}</strong></p>
+                    <p style="font-size: 14px; color: var(--text-muted);">Stream/Course: <strong>{{ latest.stream }}</strong></p>
+                    <p style="font-size: 18px; font-weight: 600; margin-top: 8px;">Score: <span style="color: var(--primary);">{{ latest.predicted_score }}/100</span></p>
+                </div>
+                {% else %}
+                <p style="color: var(--text-muted);">No predictions made yet.</p>
+                {% endif %}
+            </div>
+            {% if latest %}
+            <div style="margin-top: 16px;">
+                <a href="{{ url_for('simulator') }}" class="btn" style="background-color: #EFF6FF; color: var(--primary); padding: 8px 16px; font-size: 14px; width: 100%; text-align: center;"><i class="fa-solid fa-sliders"></i> Open What-If Simulator</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Goal Tracker Card -->
+        <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 240px;">
+            <div>
+                <h3 style="font-size: 18px; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-bullseye" style="color: #EF4444;"></i> Goal Tracker</h3>
+                {% if active_goal %}
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <p style="font-size: 14px; color: var(--text-muted);">Target Date: <strong>{{ active_goal.target_date }}</strong></p>
+                    <p style="font-size: 14px; color: var(--text-muted);">Target Score: <strong>{{ active_goal.target_score }}%</strong></p>
+                    
+                    <div style="margin-top: 8px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 4px;">
+                            <span>Overall Progress</span>
+                            <span>{{ goal_progress.overall_progress }}%</span>
+                        </div>
+                        <div style="background-color: #E5E7EB; border-radius: 9999px; height: 8px; width: 100%; overflow: hidden;">
+                            <div style="background-color: #10B981; height: 100%; width: {{ goal_progress.overall_progress }}%;"></div>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div style="text-align: center; padding: 12px 0;">
+                    <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 12px;">No active academic goals set.</p>
+                </div>
+                {% endif %}
+            </div>
+            <div style="margin-top: 16px;">
+                <a href="{{ url_for('goals_page') }}" class="btn btn-primary" style="padding: 8px 16px; font-size: 14px; width: 100%; text-align: center; text-decoration: none; display: block;">
+                    {% if active_goal %}<i class="fa-solid fa-arrow-right"></i> View Goal Tracker{% else %}<i class="fa-solid fa-plus"></i> Set a Goal{% endif %}
+                </a>
+            </div>
+        </div>
+
+        <!-- AI Academic Mentor Card -->
+        <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 240px;">
+            <div>
+                <h3 style="font-size: 18px; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-robot" style="color: var(--primary);"></i> AI Academic Mentor</h3>
+                <p style="font-size: 14px; color: var(--text-muted); line-height: 1.5; margin-bottom: 12px;">
+                    Get personalized guidance from your personal academic coach. Create study plans, explain predictions, and plan how to reach your goals.
+                </p>
+                {% if latest %}
+                <p style="font-size: 13px; color: #10B981; font-weight: 500;"><i class="fa-solid fa-circle-check"></i> Latest academic metrics loaded</p>
+                {% else %}
+                <p style="font-size: 13px; color: var(--text-muted); font-weight: 500;"><i class="fa-solid fa-triangle-exclamation"></i> Make a prediction to load details</p>
+                {% endif %}
+            </div>
+            <div style="margin-top: 16px;">
+                <a href="{{ url_for('ai_mentor') }}" class="btn btn-primary" style="padding: 8px 16px; font-size: 14px; width: 100%; text-align: center; text-decoration: none; display: block;"><i class="fa-solid fa-comments"></i> Chat with Mentor</a>
+            </div>
+        </div>
+
+        <!-- Quick Navigation Grid -->
+        <div class="card" style="min-height: 240px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+                <h3 style="font-size: 18px; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-bolt" style="color: #F59E0B;"></i> Quick Navigation</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <a href="{{ url_for('predict_page') }}" class="btn btn-primary" style="padding: 12px; font-size: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border-radius: 8px; text-decoration: none;">
+                        <i class="fa-solid fa-wand-magic-sparkles" style="font-size: 18px;"></i>
+                        <span>Predict</span>
+                    </a>
+                    <a href="{{ url_for('simulator') }}" class="btn" style="background-color: #F5F3FF; color: #8B5CF6; border: 1px solid #DDD6FE; padding: 12px; font-size: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border-radius: 8px; text-decoration: none;">
+                        <i class="fa-solid fa-sliders" style="font-size: 18px;"></i>
+                        <span>Simulator</span>
+                    </a>
+                    <a href="{{ url_for('analytics') }}" class="btn" style="background-color: #ECFDF5; color: #10B981; border: 1px solid #A7F3D0; padding: 12px; font-size: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border-radius: 8px; text-decoration: none;">
+                        <i class="fa-solid fa-chart-line" style="font-size: 18px;"></i>
+                        <span>Analytics</span>
+                    </a>
+                    <a href="{{ url_for('history') }}" class="btn" style="background-color: #FFFBEB; color: #D97706; border: 1px solid #FDE68A; padding: 12px; font-size: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border-radius: 8px; text-decoration: none;">
+                        <i class="fa-solid fa-clock-rotate-left" style="font-size: 18px;"></i>
+                        <span>History</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

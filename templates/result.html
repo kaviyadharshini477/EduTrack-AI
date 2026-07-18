@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Prediction Report | EduTrack AI{% endblock %}
+
+{% block content %}
+<div style="max-width: 1000px; margin: 0 auto;">
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <div>
+            <h1 style="font-size: 24px; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">📊 Prediction Report</h1>
+            <p style="color: var(--text-muted);">AI-generated performance analysis for {{ student.name }}</p>
+        </div>
+        <a href="{{ url_for('predict_page') }}" class="btn btn-primary">New Prediction</a>
+    </div>
+
+    <!-- Top Summary Cards -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-bottom: 24px;">
+        
+        <!-- Prediction Score -->
+        <div class="card" style="text-align: center; border-top: 4px solid var(--primary);">
+            <h2 style="font-size: 16px; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Predicted Score</h2>
+            <div style="font-size: 48px; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">{{ predicted_score }}<span style="font-size: 24px; color: var(--text-muted);">/100</span></div>
+            <p style="font-weight: 500; color: var(--primary);">{{ ai_guidance.performance_level }}</p>
+        </div>
+
+        <!-- Previous Performance -->
+        <div class="card" style="text-align: center; border-top: 4px solid #6B7280;">
+            <h2 style="font-size: 16px; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Previous Score</h2>
+            <div style="font-size: 48px; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">{{ previous_score }}<span style="font-size: 24px; color: var(--text-muted);">%</span></div>
+            <p style="color: var(--text-muted);">Based on {{ student.stream }}</p>
+        </div>
+
+    </div>
+
+    <!-- AI Guidance Sections -->
+    <div style="display: grid; grid-template-columns: 1fr; gap: 24px;">
+        
+        <div class="card">
+            <h3 style="font-size: 18px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-brain" style="color: #8B5CF6;"></i> Why was this score predicted?</h3>
+            <ul style="padding-left: 20px; color: var(--text-muted); line-height: 1.6;">
+                {% for item in ai_guidance.prediction_reason %}
+                <li style="margin-bottom: 8px;">{{ item }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px;">
+            <div class="card" style="border-left: 4px solid #10B981;">
+                <h3 style="font-size: 18px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-arrow-trend-up" style="color: #10B981;"></i> Strengths</h3>
+                <ul style="padding-left: 20px; color: var(--text-muted); line-height: 1.6;">
+                    {% for item in ai_guidance.strengths %}
+                    <li style="margin-bottom: 8px;">{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <div class="card" style="border-left: 4px solid #EF4444;">
+                <h3 style="font-size: 18px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-triangle-exclamation" style="color: #EF4444;"></i> Areas for Improvement</h3>
+                <ul style="padding-left: 20px; color: var(--text-muted); line-height: 1.6;">
+                    {% for item in ai_guidance.weaknesses %}
+                    <li style="margin-bottom: 8px;">{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <div class="card" style="background-color: #F8FAFC; border: 1px solid #E2E8F0;">
+            <h3 style="font-size: 18px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-book-open" style="color: var(--primary);"></i> Recommended Study Plan</h3>
+            <ul style="padding-left: 20px; color: #334155; line-height: 1.6;">
+                {% for item in ai_guidance.study_plan %}
+                <li style="margin-bottom: 8px;">{{ item }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="card">
+            <h3 style="font-size: 18px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-briefcase" style="color: #F59E0B;"></i> Career Suggestions</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
+                {% for career in ai_guidance.career_suggestions %}
+                <div style="background-color: #FFFBEB; border: 1px solid #FDE68A; padding: 16px; border-radius: 8px;">
+                    <h4 style="font-size: 16px; color: #92400E; margin-bottom: 8px;">{{ career.career }}</h4>
+                    <p style="font-size: 14px; color: #B45309; line-height: 1.5;">{{ career.reason }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card" style="background: linear-gradient(135deg, var(--primary), #8B5CF6); color: white;">
+            <h3 style="font-size: 18px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: white;"><i class="fa-solid fa-lightbulb"></i> Motivation</h3>
+            <p style="font-size: 16px; line-height: 1.6; font-style: italic;">"{{ ai_guidance.motivation }}"</p>
+        </div>
+        
+    </div>
+
+</div>
+{% endblock %}

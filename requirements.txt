@@ -1,0 +1,16 @@
+pandas
+numpy
+matplotlib
+seaborn
+scikit-learn
+flask
+joblib
+xgboost
+openpyxl
+requests
+python-dotenv
+flask-cors
+sqlalchemy
+flask-sqlalchemy
+flask-login
+reportlab

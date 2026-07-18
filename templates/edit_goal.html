@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Goal | EduTrack AI{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 0 auto; padding-top: 24px;">
+    
+    <div style="margin-bottom: 24px; display: flex; align-items: center; gap: 12px;">
+        <a href="{{ url_for('goals_page') }}" style="color: var(--text-muted); text-decoration: none; font-size: 18px;"><i class="fa-solid fa-arrow-left"></i> Back to Goals</a>
+    </div>
+
+    <div class="card">
+        <h2 style="font-size: 20px; font-weight: 700; color: var(--text-main); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-edit" style="color: var(--primary);"></i> Edit Goal Targets</h2>
+        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">Update your metrics requirements and achievement target date.</p>
+
+        <form action="{{ url_for('edit_goal', goal_id=goal.id) }}" method="POST">
+            <div class="form-group">
+                <label for="target_score">Target Score (%)</label>
+                <input type="number" step="0.1" name="target_score" id="target_score" class="form-control" value="{{ goal.target_score }}" min="0" max="100" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="target_study_hours">Target Study Hours (per day)</label>
+                <input type="number" step="0.1" name="target_study_hours" id="target_study_hours" class="form-control" value="{{ goal.target_study_hours }}" min="0" max="24" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="target_attendance">Target Attendance (%)</label>
+                <input type="number" step="0.1" name="target_attendance" id="target_attendance" class="form-control" value="{{ goal.target_attendance }}" min="0" max="100" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="target_date">Target Date</label>
+                <input type="date" name="target_date" id="target_date" class="form-control" value="{{ goal.target_date }}" required>
+            </div>
+
+            <div style="display: flex; gap: 16px; margin-top: 24px;">
+                <a href="{{ url_for('goals_page') }}" class="btn" style="flex: 1; background-color: #E5E7EB; color: var(--text-main);">Cancel</a>
+                <button type="submit" class="btn btn-primary" style="flex: 2;">Save Changes</button>
+            </div>
+        </form>
+    </div>
+
+</div>
+{% endblock %}

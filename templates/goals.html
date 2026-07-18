@@ -1,0 +1,334 @@
+{% extends "base.html" %}
+
+{% block title %}Goal Tracker | EduTrack AI{% endblock %}
+
+{% block extra_css %}
+<style>
+    .goal-card {
+        border-left: 6px solid var(--primary);
+    }
+    .goal-card.completed {
+        border-left-color: #10B981;
+        opacity: 0.85;
+    }
+    .progress-bar-container {
+        background-color: #E5E7EB;
+        border-radius: 999px;
+        height: 10px;
+        width: 100%;
+        overflow: hidden;
+        margin-top: 8px;
+        position: relative;
+    }
+    .progress-bar-fill {
+        height: 100%;
+        border-radius: 999px;
+        transition: width 0.5s ease-in-out;
+    }
+    .suggestions-list {
+        list-style: none;
+    }
+    .suggestions-list li {
+        position: relative;
+        padding-left: 28px;
+        margin-bottom: 12px;
+        font-size: 14px;
+        color: var(--text-main);
+        line-height: 1.5;
+    }
+    .suggestions-list li::before {
+        content: "\f058";
+        font-family: "Font Awesome 6 Free";
+        font-weight: 900;
+        position: absolute;
+        left: 0;
+        top: 2px;
+        color: var(--primary);
+        font-size: 16px;
+    }
+    .stat-comparison {
+        display: flex;
+        justify-content: space-between;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 32px;">
+    <h1 style="font-size: 24px; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">Goal Tracker</h1>
+    <p style="color: var(--text-muted);">Set academic targets, monitor your progress, and get tailored AI instructions to achieve them.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 32px; align-items: start; margin-bottom: 40px;">
+    
+    <!-- Left Column: Active Goals & AI Guidance -->
+    <div style="display: flex; flex-direction: column; gap: 32px;">
+        
+        <!-- Active Goal Progress -->
+        {% if active_goals %}
+            {% for item in active_goals %}
+            <div class="card goal-card" style="position: relative;">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 16px;">
+                    <div>
+                        <span style="background-color: #EFF6FF; color: var(--primary); font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 50px; text-transform: uppercase;">Active Goal</span>
+                        <h2 style="font-size: 20px; font-weight: 700; color: var(--text-main); margin-top: 8px;">Target Date: {{ item.goal.target_date }}</h2>
+                        <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Created on {{ item.goal.created_at }}</p>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <a href="{{ url_for('edit_goal', goal_id=item.goal.id) }}" class="btn" style="background-color: #F3F4F6; color: var(--text-main); padding: 8px 12px; font-size: 13px; display: flex; align-items: center; gap: 6px;"><i class="fa-solid fa-pen"></i> Edit</a>
+                        <form action="{{ url_for('delete_goal', goal_id=item.goal.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this goal?');">
+                            <button type="submit" class="btn" style="background-color: #FDE8E8; color: #E11D48; padding: 8px 12px; font-size: 13px; display: flex; align-items: center; gap: 6px;"><i class="fa-solid fa-trash-can"></i> Delete</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Goal Completion Progress -->
+                <div style="margin-bottom: 24px; background-color: #F9FAFB; padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-weight: 700; color: var(--text-main); font-size: 14px;"><i class="fa-solid fa-chart-line" style="color: var(--primary); margin-right: 8px;"></i> Overall Goal Progress</span>
+                        <span style="font-weight: 700; color: var(--primary); font-size: 14px;">{{ item.goal.progress }}%</span>
+                    </div>
+                    <div class="progress-bar-container" style="margin-top: 0; height: 12px; background-color: #E5E7EB; width: 100%; border-radius: 999px; overflow: hidden; position: relative;">
+                        <div class="progress-bar-fill" style="background-color: var(--primary); width: {{ item.goal.progress }}%; height: 100%; border-radius: 999px; transition: width 0.5s ease-in-out;"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-top: 6px;">
+                        <span>Progress: {{ item.goal.progress }}%</span>
+                        <span>Remaining: {{ 100 - item.goal.progress }}%</span>
+                    </div>
+
+                    <!-- Remaining Goals Stats Grid -->
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 12px; background-color: #FFF; padding: 12px; border-radius: 6px; border: 1px solid var(--border-color);">
+                        <div>
+                            <span style="font-size: 11px; color: var(--text-muted); display: block;">Current Prediction vs Target</span>
+                            <span style="font-size: 13px; font-weight: 700; color: var(--text-main);">{{ latest_prediction.predicted_score|default(0, true) }}% / {{ item.goal.target_score }}%</span>
+                        </div>
+                        <div>
+                            <span style="font-size: 11px; color: var(--text-muted); display: block;">Estimated Completion Date</span>
+                            <span style="font-size: 13px; font-weight: 700; color: #8B5CF6;">{{ item.estimated_completion_date }}</span>
+                        </div>
+                        <div>
+                            <span style="font-size: 11px; color: var(--text-muted); display: block;">Remaining Marks</span>
+                            <span style="font-size: 13px; font-weight: 700; color: {% if item.remaining_marks > 0 %}#EF4444{% else %}#10B981{% endif %};">
+                                {% if item.remaining_marks > 0 %}{{ item.remaining_marks }}%{% else %}Achieved!{% endif %}
+                            </span>
+                        </div>
+                        <div>
+                            <span style="font-size: 11px; color: var(--text-muted); display: block;">Remaining Study Hours</span>
+                            <span style="font-size: 13px; font-weight: 700; color: {% if item.remaining_study_hours > 0 %}#EF4444{% else %}#10B981{% endif %};">
+                                {% if item.remaining_study_hours > 0 %}{{ item.remaining_study_hours }} hrs/day{% else %}Achieved!{% endif %}
+                            </span>
+                        </div>
+                        <div style="grid-column: span 2;">
+                            <span style="font-size: 11px; color: var(--text-muted); display: block;">Remaining Attendance</span>
+                            <span style="font-size: 13px; font-weight: 700; color: {% if item.remaining_attendance > 0 %}#EF4444{% else %}#10B981{% endif %};">
+                                {% if item.remaining_attendance > 0 %}{{ item.remaining_attendance }}%{% else %}Achieved!{% endif %}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Update completed metrics form -->
+                    <form action="{{ url_for('update_goal_stats', goal_id=item.goal.id) }}" method="POST" style="margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+                        <h4 style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">Log Your Progress</h4>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 11px; margin-bottom: 4px; display: block;">Study Hours (hrs/day)</label>
+                                <input type="number" step="0.1" min="0" max="24" name="current_study_hours" class="form-control" style="font-size: 12px; padding: 6px;" value="{{ item.goal.current_study_hours }}" required>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 11px; margin-bottom: 4px; display: block;">Attendance (%)</label>
+                                <input type="number" step="0.1" min="0" max="100" name="current_attendance" class="form-control" style="font-size: 12px; padding: 6px;" value="{{ item.goal.current_attendance }}" required>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 11px; margin-bottom: 4px; display: block;">Practice Tests (Completed / {{ item.goal.target_tests }})</label>
+                                <input type="number" min="0" name="completed_tests" class="form-control" style="font-size: 12px; padding: 6px;" value="{{ item.goal.completed_tests }}" required>
+                            </div>
+                        </div>
+                        <div style="text-align: right; margin-top: 12px;">
+                            <button type="submit" class="btn btn-primary" style="padding: 6px 16px; font-size: 12px;">Update Progress</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Progress Meters -->
+                <div style="display: flex; flex-direction: column; gap: 24px;">
+                    <!-- Overall Score Progress -->
+                    <div>
+                        <div class="stat-comparison">
+                            <span style="color: var(--text-main);"><i class="fa-solid fa-graduation-cap" style="color: var(--primary); margin-right: 8px;"></i> Academic Performance (Score vs Target)</span>
+                            <span style="color: var(--primary);">{{ latest_prediction.predicted_score|default(0, true) }}% / {{ item.goal.target_score }}%</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill" style="background-color: var(--primary); width: {{ item.score_pct }}%;"></div>
+                        </div>
+                        <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px; text-align: right;">{{ item.score_pct }}% Achieved</p>
+                    </div>
+
+                    <!-- Study Hours Progress -->
+                    <div>
+                        <div class="stat-comparison">
+                            <span style="color: var(--text-main);"><i class="fa-solid fa-book-open" style="color: #8B5CF6; margin-right: 8px;"></i> Study Effort (Hours/Day vs Target)</span>
+                            <span style="color: #8B5CF6;">{{ item.goal.current_study_hours }} / {{ item.goal.target_study_hours }} hrs</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill" style="background-color: #8B5CF6; width: {{ item.study_pct }}%;"></div>
+                        </div>
+                        <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px; text-align: right;">{{ item.study_pct }}% Achieved</p>
+                    </div>
+
+                    <!-- Attendance Progress -->
+                    <div>
+                        <div class="stat-comparison">
+                            <span style="color: var(--text-main);"><i class="fa-solid fa-calendar-check" style="color: #10B981; margin-right: 8px;"></i> Attendance Rate (Rate vs Target)</span>
+                            <span style="color: #10B981;">{{ item.goal.current_attendance }}% / {{ item.goal.target_attendance }}%</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill" style="background-color: #10B981; width: {{ item.attendance_pct }}%;"></div>
+                        </div>
+                        <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px; text-align: right;">{{ item.attendance_pct }}% Achieved</p>
+                    </div>
+
+
+
+                    <!-- Practice Tests Progress -->
+                    <div>
+                        <div class="stat-comparison">
+                            <span style="color: var(--text-main);"><i class="fa-solid fa-vial" style="color: #EC4899; margin-right: 8px;"></i> Practice Tests Completed (vs Target)</span>
+                            <span style="color: #EC4899;">{{ item.goal.completed_tests }} / {{ item.goal.target_tests }}</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill" style="background-color: #EC4899; width: {{ item.tests_pct }}%;"></div>
+                        </div>
+                        <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px; text-align: right;">{{ item.tests_pct }}% Achieved</p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="card" style="text-align: center; padding: 48px 24px;">
+                <div style="font-size: 48px; color: var(--text-muted); margin-bottom: 16px;">
+                    <i class="fa-solid fa-bullseye" style="color: var(--primary); opacity: 0.5;"></i>
+                </div>
+                <h3 style="font-size: 18px; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">No Active Goals</h3>
+                <p style="color: var(--text-muted); max-width: 400px; margin: 0 auto 20px;">Setting goals helps you focus your study hours and attendance to boost your academic scores. Create a goal to get started!</p>
+            </div>
+        {% endif %}
+
+        <!-- AI Suggestions to Achieve Goal -->
+        {% if active_goals and ai_suggestions %}
+        <div class="card" style="background: linear-gradient(135deg, #F3F4F6 0%, #EFF6FF 100%); border: 1px solid rgba(37, 99, 235, 0.15);">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; border-bottom: 1px solid rgba(37, 99, 235, 0.1); padding-bottom: 12px;">
+                <div style="width: 36px; height: 36px; background-color: var(--primary); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px;">
+                    <i class="fa-solid fa-robot"></i>
+                </div>
+                <div>
+                    <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main);">AI Study Path Recommendations</h3>
+                    <p style="font-size: 12px; color: var(--text-muted);">Custom guidance generated based on your latest performance details.</p>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 24px;">
+                <!-- Feasibility & Timeline Box -->
+                <div style="background-color: #FFFFFF; padding: 16px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 16px; justify-content: center;">
+                    <div>
+                        <span style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 4px;">Goal Feasibility</span>
+                        <span style="font-size: 14px; font-weight: 700; color: {% if 'High' in ai_suggestions.feasibility %}#10B981{% elif 'Medium' in ai_suggestions.feasibility %}#F59E0B{% else %}#EF4444{% endif %};">
+                            {{ ai_suggestions.feasibility }}
+                        </span>
+                    </div>
+                    <div>
+                        <span style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 4px;">Timeline Advice</span>
+                        <p style="font-size: 13px; font-weight: 500; color: var(--text-main);">{{ ai_suggestions.timeline_advice }}</p>
+                    </div>
+                </div>
+
+                <!-- Suggestions list -->
+                <div>
+                    <span style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 8px;">Action Items</span>
+                    <ul class="suggestions-list">
+                        {% for suggestion in ai_suggestions.suggestions %}
+                            <li>{{ suggestion }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+
+    <!-- Right Column: Create New Goal Form -->
+    <div>
+        <div class="card">
+            <h3 style="font-size: 18px; font-weight: 700; color: var(--text-main); margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-plus-circle" style="color: var(--primary);"></i> Set New Goal</h3>
+            <form action="{{ url_for('create_goal') }}" method="POST">
+                <div class="form-group">
+                    <label for="target_score">Target Score (%)</label>
+                    <input type="number" step="0.1" name="target_score" id="target_score" class="form-control" placeholder="e.g. 92.5" min="0" max="100" required>
+                </div>
+                <div class="form-group">
+                    <label for="target_study_hours">Target Study Hours (per day)</label>
+                    <input type="number" step="0.1" name="target_study_hours" id="target_study_hours" class="form-control" placeholder="e.g. 6.0" min="0" max="24" required>
+                </div>
+                <div class="form-group">
+                    <label for="target_attendance">Target Attendance (%)</label>
+                    <input type="number" step="0.1" name="target_attendance" id="target_attendance" class="form-control" placeholder="e.g. 95.0" min="0" max="100" required>
+                </div>
+                <div class="form-group">
+                    <label for="target_date">Target Date</label>
+                    <input type="date" name="target_date" id="target_date" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" style="margin-top: 8px;">Set Goal</button>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<!-- Historical Goals Log -->
+<div class="card" style="margin-top: 16px;">
+    <h3 style="font-size: 18px; font-weight: 700; color: var(--text-main); margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-history" style="color: var(--text-muted);"></i> Goal History</h3>
+    
+    {% if completed_goals %}
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
+                <thead>
+                    <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-muted); font-weight: 600;">
+                        <th style="padding: 12px;">Target Date</th>
+                        <th style="padding: 12px;">Target Score</th>
+                        <th style="padding: 12px;">Target Study Hours</th>
+                        <th style="padding: 12px;">Target Attendance</th>
+                        <th style="padding: 12px;">Status</th>
+                        <th style="padding: 12px; text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for goal in completed_goals %}
+                    <tr style="border-bottom: 1px solid var(--border-color); vertical-align: middle;">
+                        <td style="padding: 12px; font-weight: 500;">{{ goal.target_date }}</td>
+                        <td style="padding: 12px;">{{ goal.target_score }}%</td>
+                        <td style="padding: 12px;">{{ goal.target_study_hours }} hrs/day</td>
+                        <td style="padding: 12px;">{{ goal.target_attendance }}%</td>
+                        <td style="padding: 12px;">
+                            <span style="background-color: #D1FAE5; color: #065F46; font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 4px;"><i class="fa-solid fa-circle-check"></i> Completed</span>
+                        </td>
+                        <td style="padding: 12px; text-align: right; display: flex; justify-content: flex-end; gap: 8px;">
+                            <form action="{{ url_for('toggle_goal', goal_id=goal.id) }}" method="POST" style="display: inline;">
+                                <button type="submit" class="btn" style="background-color: #EFF6FF; color: var(--primary); padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-redo"></i> Reopen</button>
+                            </form>
+                            <form action="{{ url_for('delete_goal', goal_id=goal.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this goal?');">
+                                <button type="submit" class="btn" style="background-color: #FDE8E8; color: #E11D48; padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-trash-can"></i> Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p style="color: var(--text-muted); text-align: center; padding: 16px 0;">No completed or historical goals to display.</p>
+    {% endif %}
+</div>
+{% endblock %}

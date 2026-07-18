@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}EduTrack AI{% endblock %}</title>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #2563EB; /* Royal Blue */
+            --primary-hover: #1D4ED8;
+            --bg-color: #F3F4F6; /* Light gray background */
+            --sidebar-bg: #1F2937; /* Dark Gray */
+            --sidebar-text: #F9FAFB;
+            --card-bg: #FFFFFF; /* White */
+            --text-main: #111827;
+            --text-muted: #6B7280;
+            --border-color: #E5E7EB;
+            --radius: 12px;
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: 260px;
+            background-color: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            left: 0;
+            top: 0;
+            z-index: 100;
+            transition: var(--transition);
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            font-size: 20px;
+            font-weight: 700;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            color: #fff;
+            letter-spacing: 0.5px;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 20px 0;
+            flex-grow: 1;
+        }
+
+        .sidebar-menu li {
+            padding: 0 16px;
+            margin-bottom: 8px;
+        }
+
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            color: #D1D5DB;
+            text-decoration: none;
+            border-radius: var(--radius);
+            transition: var(--transition);
+            font-weight: 500;
+        }
+
+        .sidebar-menu a i {
+            margin-right: 12px;
+            width: 20px;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        .sidebar-menu a:hover, .sidebar-menu a.active {
+            background-color: var(--primary);
+            color: #fff;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            flex-grow: 1;
+            {% if current_user.is_authenticated %}
+            margin-left: 260px;
+            {% endif %}
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        /* Topbar */
+        .topbar {
+            height: 70px;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            position: sticky;
+            top: 0;
+            z-index: 99;
+            box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 500;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            background-color: var(--primary);
+            color: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        /* Content Container */
+        .content-container {
+            padding: 32px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 16px;
+            border-radius: var(--radius);
+            margin-bottom: 24px;
+            font-weight: 500;
+        }
+        .alert-success { background-color: #DEF7EC; color: #03543F; border: 1px solid #9AE6B4; }
+        .alert-danger { background-color: #FDE8E8; color: #9B1C1C; border: 1px solid #FBD5D5; }
+        .alert-info { background-color: #E1EFFE; color: #1E429F; border: 1px solid #A4CAFE; }
+
+        /* General UI Elements */
+        .card {
+            background-color: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            border: 1px solid var(--border-color);
+            transition: var(--transition);
+        }
+        .card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+            text-decoration: none;
+            font-size: 15px;
+        }
+        .btn-primary {
+            background-color: var(--primary);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+        
+        .btn-block {
+            width: 100%;
+            display: block;
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-main);
+            font-size: 14px;
+        }
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 15px;
+            transition: var(--transition);
+            outline: none;
+            background-color: #F9FAFB;
+        }
+        .form-control:focus {
+            border-color: var(--primary);
+            background-color: #fff;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+        }
+        
+        select.form-control {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1em;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .main-content { margin-left: 0; }
+        }
+
+        {% block extra_css %}{% endblock %}
+    </style>
+</head>
+<body>
+
+    {% if current_user.is_authenticated %}
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            EduTrack AI
+        </div>
+        <ul class="sidebar-menu">
+            <li><a href="{{ url_for('home') }}"><i class="fa-solid fa-house"></i> Home</a></li>
+            <li><a href="{{ url_for('predict_page') }}"><i class="fa-solid fa-wand-magic-sparkles"></i> Predict</a></li>
+            <li><a href="{{ url_for('simulator') }}"><i class="fa-solid fa-sliders"></i> What-If Simulator</a></li>
+            <li><a href="{{ url_for('goals_page') }}"><i class="fa-solid fa-bullseye"></i> Goal Tracker</a></li>
+            <li><a href="{{ url_for('dashboard') }}"><i class="fa-solid fa-chart-pie"></i> Dashboard</a></li>
+            <li><a href="{{ url_for('ai_mentor') }}"><i class="fa-solid fa-robot"></i> AI Mentor</a></li>
+            <li><a href="{{ url_for('history') }}"><i class="fa-solid fa-clock-rotate-left"></i> History</a></li>
+            <li><a href="{{ url_for('analytics') }}"><i class="fa-solid fa-chart-line"></i> Analytics</a></li>
+            <li><a href="{{ url_for('profile') }}"><i class="fa-solid fa-user"></i> Profile</a></li>
+        </ul>
+        <div style="padding: 20px; margin-top: auto;">
+            <a href="{{ url_for('logout') }}" style="display: block; text-align: center; color: #9CA3AF; text-decoration: none; padding: 12px; border-radius: 8px; transition: var(--transition);" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.1)'; this.style.color='#fff';" onmouseout="this.style.backgroundColor='transparent'; this.style.color='#9CA3AF';"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
+        </div>
+    </aside>
+    {% endif %}
+
+    <div class="main-content">
+        <header class="topbar">
+            <div>
+                {% if not current_user.is_authenticated %}
+                <strong style="font-size: 1.2rem; color: var(--primary);"><i class="fa-solid fa-graduation-cap"></i> EduTrack AI</strong>
+                {% else %}
+                <span style="color: var(--text-muted); font-weight: 500;">Welcome back!</span>
+                {% endif %}
+            </div>
+            
+            <div class="topbar-right">
+                {% if current_user.is_authenticated %}
+                <div class="user-profile">
+                    <div class="user-avatar">{{ current_user.full_name[0].upper() }}</div>
+                    <span>{{ current_user.full_name }}</span>
+                </div>
+                {% else %}
+                <a href="{{ url_for('login') }}" class="btn" style="color: var(--text-main); font-weight: 500;">Login</a>
+                <a href="{{ url_for('register') }}" class="btn btn-primary">Register</a>
+                {% endif %}
+            </div>
+        </header>
+
+        <main class="content-container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    {% block scripts %}{% endblock %}
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const currentPath = window.location.pathname;
+            const links = document.querySelectorAll(".sidebar-menu a");
+            links.forEach(link => {
+                const linkPath = link.getAttribute("href");
+                if (linkPath === currentPath || (currentPath.startsWith(linkPath) && linkPath !== "/")) {
+                    link.classList.add("active");
+                }
+            });
+        });
+    </script>
+</body>
+</html>
