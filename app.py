@@ -362,7 +362,7 @@ If no subjects or scores are found, return {"subjects": []}.
 """
             from backend.ai import client
             response = client.chat.completions.create(
-                model="meta-llama/llama-4-scout-17b-16e-instruct",
+                model="llama-3.3-70b-versatile",
                 messages=[
                     {
                         "role": "user",
