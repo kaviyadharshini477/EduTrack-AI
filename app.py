@@ -298,36 +298,41 @@ def predict_page():
 def extract_report_card():
     import base64
     import json
-    
+
     if "file" not in request.files:
         return {"status": "error", "message": "No file uploaded"}, 400
-        
+
     file = request.files["file"]
     if file.filename == "":
         return {"status": "error", "message": "No file selected"}, 400
-        
+
     mime_type = file.content_type
     filename = file.filename.lower()
-    
+
     try:
         if filename.endswith(".pdf") or mime_type == "application/pdf":
             # PDF Text Extraction
             pdf_text = ""
             from pypdf import PdfReader
+
             reader = PdfReader(file.stream)
             for page in reader.pages:
                 t = page.extract_text()
                 if t:
                     pdf_text += t + "\n"
-            
+
             if not pdf_text.strip():
-                return {"status": "error", "message": "Could not extract any text from the PDF. The PDF may be scanned (image-based). Please try uploading it as an image."}, 400
-                
+                return {
+                    "status": "error",
+                    "message": "Could not extract any text from the PDF. The PDF may be scanned (image-based). Please try uploading it as an image."
+                }, 400
+
             prompt = f"""
 Analyze the following text extracted from a student's report card or transcript.
 Extract all subject names and their corresponding numerical scores or grades (convert letter grades to numerical percentages if possible: e.g. A=95, B=85, C=75, D=65, F=50, or use the actual score if present).
 Return ONLY a JSON object containing a "subjects" key with a list of subjects, where each subject has a "name" and "score" (a float or integer between 0 and 100).
 Do not include any formatting, explanation, or markdown code blocks.
+
 Response format:
 {{
   "subjects": [
@@ -335,72 +340,92 @@ Response format:
     {{"name": "Science", "score": 90.0}}
   ]
 }}
+
 If no subjects or scores are found, return {{"subjects": []}}.
 
 Report Card Text:
 {pdf_text}
 """
+
             from backend.ai import client
-            response = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.0,
-                response_format={"type": "json_object"}
-            )
-            
-        else:
-            # Image Extraction (using Scout Vision Model)
-            image_bytes = file.read()
-            base64_image = base64.b64encode(image_bytes).decode('utf-8')
-            
-            prompt = """
-Analyze this report card, transcript, or academic document image.
-Extract all subject names and their corresponding numerical scores or grades (convert letter grades to numerical percentages if possible: e.g. A=95, B=85, C=75, D=65, F=50, or use the actual score if present).
-Return ONLY a JSON object containing a "subjects" key with a list of subjects, where each subject has a "name" and "score" (a float or integer between 0 and 100).
-Do not include any formatting, explanation, or markdown code blocks.
-Response format:
-{
-  "subjects": [
-    {"name": "Math", "score": 85.0},
-    {"name": "Science", "score": 90.0}
-  ]
-}
-If no subjects or scores are found, return {"subjects": []}.
-"""
-            from backend.ai import client
+
             response = client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
                 messages=[
                     {
                         "role": "user",
-                        "content": [
-                            {"type": "text", "text": prompt},
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:{mime_type};base64,{base64_image}",
-                                },
-                            },
-                        ],
+                        "content": prompt
                     }
                 ],
                 temperature=0.0,
-                response_format={"type": "json_object"}
+                response_format={
+                    "type": "json_object"
+                }
             )
-            
+
+        else:
+            import tempfile
+            import easyocr
+
+            # Save uploaded image temporarily
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp:
+                file.save(temp.name)
+                image_path = temp.name
+
+            # OCR
+            reader = easyocr.Reader(['en'], gpu=False)
+            result = reader.readtext(image_path, detail=0)
+
+            extracted_text = "\n".join(result)
+
+            prompt = f"""
+Analyze the following OCR text extracted from a student's report card.
+
+Extract all subject names and their corresponding numerical scores.
+
+Return ONLY valid JSON.
+
+Format:
+{{
+  "subjects": [
+    {{
+      "name": "Math",
+      "score": 90
+    }}
+  ]
+}}
+
+OCR Text:
+{extracted_text}
+"""
+
+            from backend.ai import client
+
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                temperature=0,
+                response_format={
+                    "type": "json_object"
+                }
+            )
+
         result_content = response.choices[0].message.content
         extracted_data = json.loads(result_content)
-        
+
         return {
             "status": "success",
             "subjects": extracted_data.get("subjects", [])
         }
-        
+
     except Exception as e:
         print("Report card extraction error:", e)
         return {"status": "error", "message": str(e)}, 500
-
-
 
 # ---------------------------------------
 # Prediction API
